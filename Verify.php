@@ -29,6 +29,7 @@ function getPublicKey($userID) {
 }
 
 $userID = isset($_POST['userID']) ? $_POST["userID"] : "";
+$p_id = isset($_POST['p_id']) ? $_POST["p_id"] : "";
 $message = isset($_POST['message']) ? $_POST["message"] : "";
 $signature = isset($_POST['signature']) ? $_POST["signature"] : "";
 $publicKey1 = isset($_POST['publicKey']) ? $_POST["publicKey"] : "";
@@ -37,7 +38,7 @@ $publicKey = getPublicKey($userID);
 
 $issame = strcmp($publicKey1, $publicKey);
 
-if ($issame === 0) {
+if ($issame == 0) {
     $issame2 = true;
 } else {
     $issame2 = false;
@@ -73,20 +74,24 @@ if ($decodedPublicKey !== false) {
 }
 
 $response = array();
-$response["success"] = false;
-//$response["isValidPublicKey"] = $isPublicKeyValid;
-//$response["issame"] = $issame2;
+$response["purchased"] = false;
+
+//FIDO의 카드정보 조회
 
 
 if ($publicKeyResource !== false) {
-    $verify = openssl_verify($chall, base64_decode($signature), $publicKeyResource, OPENSSL_ALGO_SHA256);
-    if ($verify === 1) {
-        $response["success"] = true;
+    $verify = openssl_verify(hash('sha256', $message, true), base64_decode($signature), $publicKeyResource, OPENSSL_ALGO_SHA256);
+
+    if ($verify == 1) {
+        $con = mysqli_connect("192.168.0.5", "bpm", "@Rkddbals0217", "duduhgee", 3306);
+            $buy = "UPDATE product_list SET p_left = p_left - 1 where p_id = '$p_id'";
+            $con->query($buy);
+        $response["purchased"] = true;
+        echo json_encode($response);
+
+    }else{
+        $response["purchased"] = false;
+        echo json_encode($response);
     }
 }
-
-echo json_encode($response);
 ?>
-
-
-

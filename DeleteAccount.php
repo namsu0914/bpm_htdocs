@@ -2,32 +2,62 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+try {
+    $db = new PDO("mysql:host=192.168.0.5;dbname=duduhgee;charset=utf8", "bpm", "@Rkddbals0217");
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// POST로 전달된 데이터 받기
-$userID = isset($_POST['userID']) ? $_POST['userID'] : '';
+    // 사용자 입력
+    $userIDToDelete = isset($_POST["userID"]) ? $_POST["userID"] : "";
 
+    if ($userIDToDelete != "") {
+        // SQL 쿼리를 바인딩하여 사용자 계정 정보 삭제 처리
+        $statement = $db->prepare("DELETE FROM USER WHERE userID = :userIDToDelete");
 
-$con = mysqli_connect("192.168.0.5", "bpm", "@Rkddbals0217", "duduhgee", 3306);
-mysqli_query($con,'SET NAMES utf8');
+        // 바인딩
+        $statement->bindParam(':userIDToDelete', $userIDToDelete, PDO::PARAM_STR);
 
-$statement = mysqli_prepare($con, "DELETE FROM USER WHERE userID = '$userID'");
-$result = mysqli_stmt_execute($statement);
+        // 쿼리 실행
+        $result = $statement->execute();
 
+        // 사용자 공개키 정보 삭제 처리
+        $keyStatement = $db->prepare("DELETE FROM PK WHERE userID = :userIDToDelete");
 
-// 응답 데이터 생성
-$response = array();
-if ($result) {
-    $response['success'] = true;
-} else {
-    $response['success'] = false;
+        // 바인딩
+        $keyStatement->bindParam(':userIDToDelete', $userIDToDelete, PDO::PARAM_STR);
+
+        // 공개키 정보 쿼리 실행
+        $keyResult = $keyStatement->execute();
+
+        $cardStatement = $db->prepare("DELETE FROM card WHERE userID = :userIDToDelete");
+
+        // 바인딩
+        $cardStatement->bindParam(':userIDToDelete', $userIDToDelete, PDO::PARAM_STR);
+
+        // 공개키 정보 쿼리 실행
+        $cardResult = $cardStatement->execute();
+
+        $payStatement = $db->prepare("DELETE FROM pay_detail WHERE userID = :userIDToDelete");
+
+        // 바인딩
+        $payStatement->bindParam(':userIDToDelete', $userIDToDelete, PDO::PARAM_STR);
+
+        // 공개키 정보 쿼리 실행
+        $payResult = $payStatement->execute();
+
+        $response = array();
+        if ($result && $keyResult && $cardResult && $payResult) {
+            $response["success"] = true;
+        } else {
+            $response["success"] = false;
+        }
+    } else {
+        $response = array();
+        $response["success"] = false;
+    }
+
+    echo json_encode($response);
+} catch (PDOException $e) {
+    // 에러 처리
+    echo "Database Error: " . $e->getMessage();
 }
-
-// 응답 데이터 전송
-header('Content-Type: application/json');
-echo json_encode($response);
-
-// DB 연결 종료
-$stmt->close();
-$conn->close();
-
 ?>
